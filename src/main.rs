@@ -7,7 +7,8 @@ use crate::plugin::{get_all, McError, MusicCtl};
 use clap::{Parser, ValueEnum};
 use futures::future::join_all;
 use std::{collections::HashMap, process::ExitCode};
-use zbus::{dbus_proxy, zvariant::Value, Connection};
+use zbus::{zvariant::Value, Connection};
+use zbus_macros::proxy;
 
 /// Looks for running music player and issues appropriate command to it
 #[derive(Debug, Default, Clone, Parser)]
@@ -35,7 +36,7 @@ enum Command {
     Mute,
 }
 
-#[dbus_proxy(assume_defaults = true)]
+#[proxy(assume_defaults = true)]
 trait Notifications {
     /// Call the org.freedesktop.Notifications.Notify D-Bus method
     #[allow(clippy::too_many_arguments)]
@@ -59,7 +60,7 @@ async fn first_active<'a>(
     for item in list {
         if item.mc_canplay().await? {
             if let Some(name) = name {
-                if &item.mc_name().await? == name {
+                if item.mc_name().await?.contains(name) {
                     return Ok(item);
                 }
             } else {

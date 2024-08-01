@@ -12,4 +12,6 @@ futures = "0.3"
 serde_json = "1.0"
 thiserror = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "process"] }
-zbus = { version = "3", default-features = false, features = ["tokio"] }
+zbus = { version = "4", default-features = false, features = ["tokio"] }
+zbus_macros = "4"
+zvariant = "4"

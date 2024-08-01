@@ -3,11 +3,12 @@
 use crate::plugin::{variant_val_to_string, McError, MusicCtl, MusicInfo};
 use async_trait::async_trait;
 use std::collections::HashMap;
-use zbus::dbus_proxy;
+use zbus_macros::proxy;
+use zvariant::Value;
 
 pub(crate) const MPRIS_PREFIX: &str = "org.mpris.MediaPlayer2.";
 
-#[dbus_proxy(
+#[proxy(
     interface = "org.mpris.MediaPlayer2.Player",
     default_service = "org.mpris.MediaPlayer2",
     default_path = "/org/mpris/MediaPlayer2"
@@ -18,8 +19,8 @@ trait Mpris2 {
     fn previous(&self) -> zbus::Result<()>;
     fn stop(&self) -> zbus::Result<()>;
     // returns xml
-    #[dbus_proxy(property)]
-    fn metadata(&self) -> zbus::Result<HashMap<String, zbus::zvariant::Value>>;
+    #[zbus(property)]
+    fn metadata(&self) -> zbus::Result<HashMap<String, Value>>;
 }
 
 #[async_trait]
@@ -70,6 +71,6 @@ impl MusicCtl for Mpris2Proxy<'_> {
         Ok(())
     }
     async fn mc_canplay(&self) -> Result<bool, McError> {
-        Ok(self.metadata().await?.get("xesam:artist").is_some())
+        Ok(self.metadata().await?.contains_key("xesam:artist"))
     }
 }

@@ -6,7 +6,7 @@ mod radiotray;
 use async_trait::async_trait;
 use futures::future::try_join_all;
 use thiserror::Error;
-use zbus::{dbus_proxy, Connection};
+use zbus::{proxy, Connection};
 
 #[derive(Debug, Error)]
 pub(crate) enum McError {
@@ -50,7 +50,7 @@ impl std::fmt::Display for MusicInfo {
     }
 }
 
-#[dbus_proxy(assume_defaults = true)]
+#[proxy(assume_defaults = true)]
 trait DBus {
     fn list_names(&self) -> zbus::Result<Vec<String>>;
 }

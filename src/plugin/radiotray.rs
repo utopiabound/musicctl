@@ -3,28 +3,28 @@
 use crate::plugin::{get_json_string, McError, MusicCtl, MusicInfo};
 use async_trait::async_trait;
 use serde_json::Value;
-use zbus::dbus_proxy;
+use zbus_macros::proxy;
 
 pub(crate) const RADIOTRAY_NG: &str = "com.github.radiotray_ng";
 
-#[dbus_proxy(
+#[proxy(
     interface = "com.github.radiotray_ng",
     default_service = "com.github.radiotray_ng",
     default_path = "/com/github/radiotray_ng"
 )]
 trait RadioTrayNG {
-    #[dbus_proxy(name = "play")]
+    #[zbus(name = "play")]
     fn play(&self) -> zbus::Result<()>;
-    #[dbus_proxy(name = "mute")]
+    #[zbus(name = "mute")]
     fn mute(&self) -> zbus::Result<()>;
-    #[dbus_proxy(name = "stop")]
+    #[zbus(name = "stop")]
     fn stop(&self) -> zbus::Result<()>;
-    #[dbus_proxy(name = "next_station")]
+    #[zbus(name = "next_station")]
     fn next_station(&self) -> zbus::Result<()>;
-    #[dbus_proxy(name = "previous_station")]
+    #[zbus(name = "previous_station")]
     fn previous_station(&self) -> zbus::Result<()>;
     // returns quoted json
-    #[dbus_proxy(name = "get_player_state")]
+    #[zbus(name = "get_player_state")]
     fn get_player_state(&self) -> zbus::Result<String>;
 }
 
