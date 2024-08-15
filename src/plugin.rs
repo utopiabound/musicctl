@@ -2,11 +2,14 @@
 
 mod mpris;
 mod radiotray;
+mod shairportsync;
 
 use async_trait::async_trait;
 use futures::future::try_join_all;
+use std::collections::HashMap;
 use thiserror::Error;
 use zbus::{proxy, Connection};
+use zvariant::Value;
 
 #[derive(Debug, Error)]
 pub(crate) enum McError {
@@ -50,6 +53,31 @@ impl std::fmt::Display for MusicInfo {
     }
 }
 
+impl TryFrom<HashMap<String, Value<'_>>> for MusicInfo {
+    type Error = McError;
+
+    fn try_from(xs: HashMap<String, Value>) -> Result<Self, Self::Error> {
+        Ok(MusicInfo {
+            artist: xs
+                .get("xesam:artist")
+                .map(variant_val_to_string)
+                .unwrap_or_default(),
+            title: xs
+                .get("xesam:title")
+                .map(variant_val_to_string)
+                .unwrap_or_default(),
+            album: xs
+                .get("xesam:album")
+                .map(variant_val_to_string)
+                .unwrap_or_default(),
+            cover: xs
+                .get("mpris:artUrl")
+                .map(variant_val_to_string)
+                .unwrap_or_default(),
+        })
+    }
+}
+
 #[proxy(assume_defaults = true)]
 trait DBus {
     fn list_names(&self) -> zbus::Result<Vec<String>>;
@@ -81,11 +109,20 @@ pub(crate) async fn get_all(conn: &Connection) -> Result<Vec<Box<dyn MusicCtl>>,
             .map(|x| {
                 let conn = conn.clone();
                 async move {
-                    mpris::Mpris2Proxy::builder(&conn)
-                        .destination(x.to_string())?
-                        .build()
-                        .await
-                        .map(|x| Box::new(x) as Box<dyn MusicCtl>)
+                    match x.as_str() {
+                        shairportsync::SERVICE_NAME => {
+                            shairportsync::ShairportSyncProxy::builder(&conn)
+                                .destination(x.to_string())?
+                                .build()
+                                .await
+                                .map(|x| Box::new(x) as Box<dyn MusicCtl>)
+                        }
+                        _ => mpris::Mpris2Proxy::builder(&conn)
+                            .destination(x.to_string())?
+                            .build()
+                            .await
+                            .map(|x| Box::new(x) as Box<dyn MusicCtl>),
+                    }
                 }
             }),
     )

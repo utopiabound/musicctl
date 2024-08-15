@@ -1,4 +1,4 @@
-// Copyright 2023 (c) Nathaniel Clark
+// Copyright 2024 (c) Nathaniel Clark
 
 use crate::plugin::{McError, MusicCtl, MusicInfo};
 use async_trait::async_trait;
@@ -6,27 +6,27 @@ use std::collections::HashMap;
 use zbus_macros::proxy;
 use zvariant::Value;
 
-pub(crate) const MPRIS_PREFIX: &str = "org.mpris.MediaPlayer2.";
+pub const SERVICE_NAME: &str = "org.mpris.MediaPlayer2.ShairportSync";
 
 #[proxy(
-    interface = "org.mpris.MediaPlayer2.Player",
-    default_service = "org.mpris.MediaPlayer2",
-    default_path = "/org/mpris/MediaPlayer2"
+    interface = "org.gnome.ShairportSync.RemoteControl",
+    default_service = "org.mpris.MediaPlayer2.ShairportSync",
+    default_path = "/org/gnome/ShairportSync"
 )]
-trait Mpris2 {
+trait ShairportSync {
     fn play_pause(&self) -> zbus::Result<()>;
+    fn stop(&self) -> zbus::Result<()>;
     fn next(&self) -> zbus::Result<()>;
     fn previous(&self) -> zbus::Result<()>;
-    fn stop(&self) -> zbus::Result<()>;
-    #[zbus(property)]
-    fn can_play(&self) -> zbus::Result<bool>;
     // returns xml
     #[zbus(property)]
     fn metadata(&self) -> zbus::Result<HashMap<String, Value>>;
+    #[zbus(property)]
+    fn available(&self) -> zbus::Result<bool>;
 }
 
 #[async_trait]
-impl MusicCtl for Mpris2Proxy<'_> {
+impl MusicCtl for ShairportSyncProxy<'_> {
     async fn mc_play(&self) -> Result<(), McError> {
         self.play_pause().await?;
         Ok(())
@@ -37,7 +37,7 @@ impl MusicCtl for Mpris2Proxy<'_> {
     }
     async fn mc_name(&self) -> Result<String, McError> {
         let name = &self.inner().destination().as_str()["org.mpris.MediaPlayer2.".len()..];
-        Ok(format!("{name} (MPRIS)"))
+        Ok(name.to_string())
     }
     async fn mc_info(&self) -> Result<Option<MusicInfo>, McError> {
         let xs = self.metadata().await?;
@@ -56,6 +56,6 @@ impl MusicCtl for Mpris2Proxy<'_> {
         Ok(())
     }
     async fn mc_canplay(&self) -> Result<bool, McError> {
-        Ok(self.can_play().await? && self.metadata().await?.contains_key("xesam:artist"))
+        Ok(self.available().await? && self.metadata().await?.contains_key("xesam:artist"))
     }
 }
